@@ -13,9 +13,9 @@ n_decoder_hidden_3 = 1000
 
 # Parameters
 learning_rate = 0.01
-training_epochs = 1000
+training_epochs = 10001
 batch_size = 50
-display_step = 1
+display_step = 1000
 
 def layer_batch_norm(x, n_out, phase_train):
     beta_init = tf.constant_initializer(value=0.0, dtype=tf.float32)
@@ -97,7 +97,7 @@ def training(cost, global_step):
 
 def image_summary(label, tensor):
     tensor_reshaped = tf.reshape(tensor, [-1, 28, 28, 1])
-    return tf.summary.image(label, tensor_reshaped)
+    return tf.summary.image(label, tensor_reshaped, max_outputs=4)
 
 def evaluate(output, x):
     with tf.variable_scope("validation"):
@@ -186,4 +186,4 @@ if __name__ == '__main__':
 
             test_loss = sess.run(eval_op, feed_dict={x: cag.test.images, phase_train: False})
 
-            print("Test Loss:", loss)
+            print("Test Loss:", test_loss)
