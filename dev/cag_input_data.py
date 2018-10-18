@@ -90,6 +90,51 @@ def readin_ped(snp_names, n_snp=784):
 
     return ped_df
 
+def readin_ped2(snp_names, n_snp=784):
+    """ Readin ped file, adding columns names using the SNP names from
+    the map file, and converting the genotype (2 alleles) into a single code,
+    and allowing the user to choose the number of SNPs to read in
+    """
+    # FIXME: Check that n_snp is in range
+    # FIXME: Check that snp_names is string array
+    print("Reading PED file...", end='', flush=True)
+    
+    ped_colnames = ['FAM_ID',
+                    'INDIV_ID',
+                    'PAT_ID',
+                    'MAT_ID',
+                    'SEX',
+                    'PHENOTYPE'
+    ] # Plus genotype columns that we will add now
+    
+    # Get number of SNPs from map file
+    n_snp_total = len(snp_names)
+
+    # Make array of column names
+    snp_names = np.array(snp_names, dtype=str)
+
+    # All ped file column names
+    ped_colnames = np.append(ped_colnames, new_names)
+
+    
+    geno_col_idx = np.arange(n_snp*2)+6
+
+    # Get (some) genotypes from ped file
+    geno_df = pd.read_csv(PED_DATA_FILE, header=None,
+                         usecols=col_idx, sep=' ')
+
+    # Merge each of the genotype pairs into a single encoding per snp
+    geno_arr = geno_df####STARTHERE
+
+    # Make vector of indices for which columns we want to use
+    col_idx_init = np.array([1,5])
+    
+    # Append the column names to the data frame
+    ped_df.columns = ped_colnames[col_idx]
+    print(" Done")
+
+    return ped_df
+
 
 #if __name__ == '__main__':
 
