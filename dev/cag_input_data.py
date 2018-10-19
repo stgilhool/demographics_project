@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import csv
 import tensorflow as tf
+import pdb
 
 # Initialize paths and file names
 # Paths
@@ -21,6 +22,10 @@ PED_DATA_FILE = SEQ_DATA_PATH + PED_DATA_FILENAME
 MAP_DATA_FILE = SEQ_DATA_PATH + MAP_DATA_FILENAME
 CHIP_DATA_FILE = SEQ_DATA_PATH + CHIP_DATA_FILENAME
 PATIENT_DATA_FILE = PATIENT_DATA_PATH + PATIENT_DATA_FILENAME
+
+n_row = 10
+n_col = 10
+n_snp = n_row * n_col
 
 def readin_epic():
     # Read in patient data file
@@ -49,7 +54,7 @@ def readin_map():
     print(" Done")
     return map_df
 
-def readin_ped(snp_names, n_snp=784):
+def readin_ped_old(snp_names, n_snp=n_snp):
     """ Readin ped file, adding columns names using the SNP names from
     the map file (<SNP1>_A1, <SNP1>_A2, <SNP2>_A1, <SNP2>_A2, ...),
     and allowing the user to choose the number of SNPs to read in
@@ -90,7 +95,7 @@ def readin_ped(snp_names, n_snp=784):
 
     return ped_df
 
-def readin_ped2(snp_names, n_snp=784):
+def readin_ped(snp_names, n_snp=n_snp):
     """ Readin ped file, adding columns names using the SNP names from
     the map file, and converting the genotype (2 alleles) into a single code,
     and allowing the user to choose the number of SNPs to read in
@@ -99,39 +104,51 @@ def readin_ped2(snp_names, n_snp=784):
     # FIXME: Check that snp_names is string array
     print("Reading PED file...", end='', flush=True)
     
-    ped_colnames = ['FAM_ID',
-                    'INDIV_ID',
-                    'PAT_ID',
-                    'MAT_ID',
-                    'SEX',
-                    'PHENOTYPE'
-    ] # Plus genotype columns that we will add now
+    ped_colnames = np.array(['FAM_ID',
+                             'INDIV_ID',
+                             'PAT_ID',
+                             'MAT_ID',
+                             'SEX',
+                             'PHENOTYPE'
+    ]) # Plus genotype columns that we will add now
     
     # Get number of SNPs from map file
     n_snp_total = len(snp_names)
 
     # Make array of column names
-    snp_names = np.array(snp_names, dtype=str)
+    snp_names_all = np.array(snp_names, dtype=str)
+    snp_names = snp_names_all[:n_snp]
 
-    # All ped file column names
-    ped_colnames = np.append(ped_colnames, new_names)
-
+    # PED file column names and indices that we want
+    relevant_idx = np.array([1,5])
+    ped_colnames = np.append(ped_colnames[relevant_idx], np.array(snp_names))
+    ped_col_idx = np.append(relevant_idx,np.arange(n_snp*2)+6)
     
-    geno_col_idx = np.arange(n_snp*2)+6
 
     # Get (some) genotypes from ped file
-    geno_df = pd.read_csv(PED_DATA_FILE, header=None,
-                         usecols=col_idx, sep=' ')
+    ped_df = pd.read_csv(PED_DATA_FILE, header=None,
+                         usecols=ped_col_idx, sep=' ')
 
     # Merge each of the genotype pairs into a single encoding per snp
-    geno_arr = geno_df####STARTHERE
+    geno_arr = ped_df.iloc[:,len(relevant_idx):].values
+    ped_df.drop(ped_df.columns[[np.arange(n_snp*2)+len(relevant_idx)]],
+                axis=1, inplace=True)
+    
+    n_rows = geno_arr.shape[0]
+    geno_arr = geno_arr.reshape(n_snp*n_rows, 2)
 
-    # Make vector of indices for which columns we want to use
-    col_idx_init = np.array([1,5])
+    base3_geno_arr = geno_arr * np.array([3**1, 3**0])
+    base3_geno_arr = np.add.reduce(base3_geno_arr, axis=1)
+    base3_geno_arr = base3_geno_arr.reshape(n_rows, n_snp)
+    
+    # Merge the original df with the new genotype data
+    geno_df = pd.DataFrame(data=base3_geno_arr)
+    ped_df = pd.concat([ped_df, geno_df], axis=1)
+    print(ped_df.shape)
     
     # Append the column names to the data frame
-    ped_df.columns = ped_colnames[col_idx]
-    print(" Done")
+    ped_df.columns = ped_colnames
+    print(f" Done ({n_snp} SNPS read)")
 
     return ped_df
 
@@ -145,6 +162,9 @@ map_df  = readin_map()
 
 snp_names = map_df['SNP_RS'].values
 ped_df = readin_ped(snp_names)
+
+
+
 
 # Merge CHIPID and CHIP_SECTION to create INDIV_ID
 chip_df['INDIV_ID'] = chip_df['CHIPID'].map(str) + '_' + chip_df['CHIP_SECTION']
@@ -189,7 +209,7 @@ ethnicity_embedding = [ethnicity_to_bit[ethnicity_names[i]]
 input_labels = np.array(race_embedding) + np.array(ethnicity_embedding)
 
 # Genotype data as 2-D array (n_patients x n_genotypes)
-input_data = newdata_df.iloc[:,np.arange(28*28)].values
+input_data = newdata_df.iloc[:,np.arange(n_row*n_col)].values
 input_data = input_data[gd_idx,:]
 
 print(labels_df.columns.values)
@@ -241,7 +261,7 @@ class DataSet(object):
   def next_batch(self, batch_size, fake_data=False):
     """Return the next `batch_size` examples from this data set."""
     if fake_data:
-      fake_image = [1] * 784
+      fake_image = [1] * n_snp
       if self.one_hot:
         fake_label = [1] + [0] * 9
       else:
@@ -277,7 +297,7 @@ def read_data_sets(fake_data=False,
     data_sets.validation = fake()
     data_sets.test = fake()
     return data_sets
-  VALIDATION_SIZE = 350
+  VALIDATION_SIZE = 450
   train_images = input_data[0:VALIDATION_SIZE*2,:]
   train_labels = input_labels[0:VALIDATION_SIZE*2]
   test_images = input_data[VALIDATION_SIZE*2:,:]
