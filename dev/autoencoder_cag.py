@@ -4,18 +4,30 @@ from tensorflow.python import control_flow_ops
 import time, argparse
 
 # Architecture
+'''
 n_encoder_hidden_1 = 1000
 n_encoder_hidden_2 = 500
 n_encoder_hidden_3 = 250
 n_decoder_hidden_1 = 250
 n_decoder_hidden_2 = 500
 n_decoder_hidden_3 = 1000
+'''
+n_encoder_hidden_1 = 100
+n_encoder_hidden_2 = 50
+n_encoder_hidden_3 = 25
+n_decoder_hidden_1 = 25
+n_decoder_hidden_2 = 50
+n_decoder_hidden_3 = 100
+
+n_row = 5
+n_col = 10
+n_snp = n_row * n_col
 
 # Parameters
 learning_rate = 0.01
-training_epochs = 10001
-batch_size = 50
-display_step = 1000
+training_epochs = 5001
+batch_size = 400
+display_step = 10
 
 def layer_batch_norm(x, n_out, phase_train):
     beta_init = tf.constant_initializer(value=0.0, dtype=tf.float32)
@@ -53,7 +65,7 @@ def layer(input, weight_shape, bias_shape, phase_train):
 def encoder(x, n_code, phase_train):
     with tf.variable_scope("encoder"):
         with tf.variable_scope("hidden_1"):
-            hidden_1 = layer(x, [784, n_encoder_hidden_1], [n_encoder_hidden_1], phase_train)
+            hidden_1 = layer(x, [n_snp, n_encoder_hidden_1], [n_encoder_hidden_1], phase_train)
 
         with tf.variable_scope("hidden_2"):
             hidden_2 = layer(hidden_1, [n_encoder_hidden_1, n_encoder_hidden_2], [n_encoder_hidden_2], phase_train)
@@ -78,7 +90,7 @@ def decoder(code, n_code, phase_train):
             hidden_3 = layer(hidden_2, [n_decoder_hidden_2, n_decoder_hidden_3], [n_decoder_hidden_3], phase_train)
 
         with tf.variable_scope("output"):
-            output = layer(hidden_3, [n_decoder_hidden_3, 784], [784], phase_train)
+            output = layer(hidden_3, [n_decoder_hidden_3, n_snp], [n_snp], phase_train)
 
     return output
 
@@ -96,7 +108,7 @@ def training(cost, global_step):
     return train_op
 
 def image_summary(label, tensor):
-    tensor_reshaped = tf.reshape(tensor, [-1, 28, 28, 1])
+    tensor_reshaped = tf.reshape(tensor, [-1, n_row, n_col, 1])
     return tf.summary.image(label, tensor_reshaped, max_outputs=4)
 
 def evaluate(output, x):
@@ -122,7 +134,7 @@ if __name__ == '__main__':
 
         with tf.variable_scope("autoencoder_model"):
 
-            x = tf.placeholder("float", [None, 784]) # cag data image of shape 28*28=784
+            x = tf.placeholder("float", [None, n_snp]) # cag data image of shape n_row*n_col=n_snp
             phase_train = tf.placeholder(tf.bool)
 
             code = encoder(x, int(n_code), phase_train)
@@ -143,8 +155,8 @@ if __name__ == '__main__':
 
             sess = tf.Session()
 
-            train_writer = tf.summary.FileWriter("cag_autoencoder_hidden=" + n_code + "_logs/",
-                                                graph=sess.graph)
+            #train_writer = tf.summary.FileWriter("cag_autoencoder_hidden=" + n_code + "_logs/",
+             #                                   graph=sess.graph)
 
             val_writer = tf.summary.FileWriter("cag_autoencoder_hidden=" + n_code + "_logs/",
                                                 graph=sess.graph)
@@ -163,14 +175,14 @@ if __name__ == '__main__':
                     minibatch_x, minibatch_y = cag.train.next_batch(batch_size)
                     # Fit training using batch data
                     _, new_cost, train_summary = sess.run([train_op, cost, train_summary_op], feed_dict={x: minibatch_x, phase_train: True})
-                    train_writer.add_summary(train_summary, sess.run(global_step))
+                    #train_writer.add_summary(train_summary, sess.run(global_step))
                     # Compute average loss
                     avg_cost += new_cost/total_batch
                 # Display logs per epoch step
                 if epoch % display_step == 0:
                     print("Epoch:", '%04d' % (epoch+1), "cost =", "{:.9f}".format(avg_cost))
 
-                    train_writer.add_summary(train_summary, sess.run(global_step))
+                    #train_writer.add_summary(train_summary, sess.run(global_step))
 
                     validation_loss, in_im, out_im, val_summary = sess.run([eval_op, in_im_op, out_im_op, val_summary_op], feed_dict={x: cag.validation.images, phase_train: False})
                     val_writer.add_summary(in_im, sess.run(global_step))
