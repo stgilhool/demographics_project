@@ -95,6 +95,27 @@ def readin_ped_old(snp_names, n_snp=n_snp):
 
     return ped_df
 
+def merge_snps(geno_arr):
+    # Take array of snp genotype data (2 cols per snp) and merge
+    # into one column consisting of a base-3 representation
+    # 0 0 -> 0
+    # 1 1 -> 4
+    # 1 2 -> 5
+    # 2 1 -> 7
+    # 2 2 -> 8
+    n_rows = geno_arr.shape[0]
+    n_cols = geno_arr.shape[1]
+    n_snp = int(n_cols/2)
+    geno_arr = geno_arr.reshape(n_snp*n_rows, 2)
+
+    base3_geno_arr = geno_arr * np.array([3**1, 3**0])
+    base3_geno_arr = np.add.reduce(base3_geno_arr, axis=1)
+    base3_geno_arr = base3_geno_arr.reshape(n_rows, n_snp)
+
+    return base3_geno_arr
+
+
+
 def readin_ped(snp_names, n_snp=n_snp):
     """ Readin ped file, adding columns names using the SNP names from
     the map file, and converting the genotype (2 alleles) into a single code,
@@ -131,16 +152,11 @@ def readin_ped(snp_names, n_snp=n_snp):
 
     # Merge each of the genotype pairs into a single encoding per snp
     geno_arr = ped_df.iloc[:,len(relevant_idx):].values
-    ped_df.drop(ped_df.columns[[np.arange(n_snp*2)+len(relevant_idx)]],
+    ped_df.drop(ped_df.columns[np.arange(n_snp*2)+len(relevant_idx)],
                 axis=1, inplace=True)
-    
-    n_rows = geno_arr.shape[0]
-    geno_arr = geno_arr.reshape(n_snp*n_rows, 2)
-
-    base3_geno_arr = geno_arr * np.array([3**1, 3**0])
-    base3_geno_arr = np.add.reduce(base3_geno_arr, axis=1)
-    base3_geno_arr = base3_geno_arr.reshape(n_rows, n_snp)
-    
+    base3_geno_arr = merge_snps(geno_arr)    
+    del geno_arr
+        
     # Merge the original df with the new genotype data
     geno_df = pd.DataFrame(data=base3_geno_arr)
     ped_df = pd.concat([ped_df, geno_df], axis=1)
@@ -196,6 +212,7 @@ bit_to_ethnicity = {value:key for key, value in ethnicity_to_bit.items()}
 
 gd_idx = labels_df['pat_race'].notnull()
 
+
 demographic_cols = labels_df.loc[gd_idx,['pat_race','pat_ethnicity']].values
 #race_names = labels_df.loc[labels_df['pat_race'].notnull(),'pat_race'].values
 race_names = demographic_cols[:,0]
@@ -211,6 +228,13 @@ input_labels = np.array(race_embedding) + np.array(ethnicity_embedding)
 # Genotype data as 2-D array (n_patients x n_genotypes)
 input_data = newdata_df.iloc[:,np.arange(n_row*n_col)].values
 input_data = input_data[gd_idx,:]
+
+# Find out the "missingness" (frequency of 0's) per SNP
+num_false = np.add.reduce(np.equal(input_data, 0), axis=0)
+patients_total = float(input_data.shape[0])
+
+percentage_missing = num_false/patients_total
+# Above not needed so far (few data are missing)
 
 print(labels_df.columns.values)
 print(newdata_df.columns.values[0:10])
