@@ -12,22 +12,24 @@ n_decoder_hidden_1 = 250
 n_decoder_hidden_2 = 500
 n_decoder_hidden_3 = 1000
 '''
-n_encoder_hidden_1 = 100
-n_encoder_hidden_2 = 50
-n_encoder_hidden_3 = 25
-n_decoder_hidden_1 = 25
-n_decoder_hidden_2 = 50
-n_decoder_hidden_3 = 100
 
-n_row = 5
+n_encoder_hidden_1 = 10
+n_encoder_hidden_2 = 5
+n_encoder_hidden_3 = 3
+n_decoder_hidden_1 = 3
+n_decoder_hidden_2 = 5
+n_decoder_hidden_3 = 10
+
+
+n_row = 10
 n_col = 10
 n_snp = n_row * n_col
 
 # Parameters
 learning_rate = 0.01
-training_epochs = 5001
+training_epochs = 50001
 batch_size = 400
-display_step = 10
+display_step = 5000
 
 def layer_batch_norm(x, n_out, phase_train):
     beta_init = tf.constant_initializer(value=0.0, dtype=tf.float32)
