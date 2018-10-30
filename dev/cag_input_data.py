@@ -16,17 +16,36 @@ PATIENT_DATA_FILENAME = "patient_demo_all.csv"
 CHIP_DATA_FILENAME = "chip_data.csv"
 PED_DATA_FILENAME = "GSA-comb0-filt.ped"
 MAP_DATA_FILENAME = "GSA-comb0-filt.map"
+PCA_DATA_FILENAME = "pcs.eigenvec"
 
 # Full paths to files.
 PED_DATA_FILE = SEQ_DATA_PATH + PED_DATA_FILENAME
 MAP_DATA_FILE = SEQ_DATA_PATH + MAP_DATA_FILENAME
 CHIP_DATA_FILE = SEQ_DATA_PATH + CHIP_DATA_FILENAME
 PATIENT_DATA_FILE = PATIENT_DATA_PATH + PATIENT_DATA_FILENAME
+PCA_DATA_FILE = SEQ_DATA_PATH + PCA_DATA_FILENAME
 
 n_row = 10
 n_col = 10
 n_snp = n_row * n_col
 
+def readin_pca():
+    pca_cols = ['UNKNOWN',
+                'INDIV_ID',
+                'PCA_0',
+                'PCA_1',
+                'PCA_2',
+                'PCA_3',
+                'PCA_4',
+                'PCA_5',
+                'PCA_6',
+                'PCA_7',
+                'PCA_8',
+                'PCA_9'
+                ]
+    pca_df = pd.read_csv(PCA_DATA_FILE, header=None, names=pca_cols, sep=' ')
+    return pca_df
+                
 def readin_epic():
     # Read in patient data file
     patient_df_cols = ['pat_id', 'pat_gender', 'pat_race', 'pat_ethnicity']
@@ -50,7 +69,7 @@ def readin_map():
                     'POS_BP'
     ]
 
-    map_df = pd.read_csv(MAP_DATA_FILE, header=0, names=map_colnames, sep='\t')
+    map_df = pd.read_csv(MAP_DATA_FILE, header=None, names=map_colnames, sep='\t')
     print(" Done")
     return map_df
 
@@ -96,13 +115,15 @@ def readin_ped_old(snp_names, n_snp=n_snp):
     return ped_df
 
 def merge_snps(geno_arr):
-    # Take array of snp genotype data (2 cols per snp) and merge
-    # into one column consisting of a base-3 representation
+    '''
+    Take array of snp genotype data (2 cols per snp) and merge
+    into one column consisting of a base-3 representation
     # 0 0 -> 0
     # 1 1 -> 4
     # 1 2 -> 5
     # 2 1 -> 7
     # 2 2 -> 8
+    '''
     n_rows = geno_arr.shape[0]
     n_cols = geno_arr.shape[1]
     n_snp = int(n_cols/2)
@@ -168,6 +189,40 @@ def readin_ped(snp_names, n_snp=n_snp):
 
     return ped_df
 
+def make_ancestry_embeddings(race_and_ethnicity):
+    '''
+    Convert ancestry labels to binary embeddings
+    '''
+    race_to_bit = {'ASIAN':(1<<1),
+                   'BLACK OR AFRICAN AMERICAN':(1<<2),
+                   'WHITE':(1<<3),
+                   'OTHER':(1<<4)}
+
+    bit_to_race = {value:key for key, value in race_to_bit.items()}
+
+    ethnicity_to_bit = {'HISPANIC':1,
+                        'NON-HISPANIC':0}
+
+    bit_to_ethnicity = {value:key for key, value in ethnicity_to_bit.items()}
+
+
+    #race_names = labels_df.loc[labels_df['pat_race'].notnull(),'pat_race'].values
+    race_names = demographic_cols[:,0]
+    ethnicity_names = demographic_cols[:,1]
+
+    race_embedding = [race_to_bit[race_names[i]] for i in range(len(race_names))]
+    ethnicity_embedding = [ethnicity_to_bit[ethnicity_names[i]]
+                           for i in range(len(race_names))]
+
+    # 1-D array of decimal labels
+    input_labels = np.array(race_embedding) + np.array(ethnicity_embedding)
+    # 2-D array of binary labels
+    binary_labels = np.zeros((len(input_labels),5))
+    for index, label in enumerate(input_labels):
+        binary_labels[index,:] = [int(bit) for bit in '{0:05b}'.format(label)]
+                             
+    return binary_labels
+    
 
 #if __name__ == '__main__':
 
@@ -197,33 +252,13 @@ data_split = np.split(data_df, [5], axis=1)
 labels_df = data_split[0]
 newdata_df = data_split[1]
 indiv_id = labels_df.pop('INDIV_ID')
-
-race_to_bit = {'ASIAN':(1<<1),
-               'BLACK OR AFRICAN AMERICAN':(1<<2),
-               'WHITE':(1<<3),
-               'OTHER':(1<<4)}
-
-bit_to_race = {value:key for key, value in race_to_bit.items()}
-
-ethnicity_to_bit = {'HISPANIC':1,
-                    'NON-HISPANIC':0}
-
-bit_to_ethnicity = {value:key for key, value in ethnicity_to_bit.items()}
-
+# Get only defined rows
 gd_idx = labels_df['pat_race'].notnull()
 
-
 demographic_cols = labels_df.loc[gd_idx,['pat_race','pat_ethnicity']].values
-#race_names = labels_df.loc[labels_df['pat_race'].notnull(),'pat_race'].values
-race_names = demographic_cols[:,0]
-ethnicity_names = demographic_cols[:,1]
 
-race_embedding = [race_to_bit[race_names[i]] for i in range(len(race_names))]
-ethnicity_embedding = [ethnicity_to_bit[ethnicity_names[i]]
-                       for i in range(len(race_names))]
-
-# 1-D array of labels
-input_labels = np.array(race_embedding) + np.array(ethnicity_embedding)
+# Input ancestry labels as vectors of binary data
+input_labels = make_ancestry_embeddings(demographic_cols)
 
 # Genotype data as 2-D array (n_patients x n_genotypes)
 input_data = newdata_df.iloc[:,np.arange(n_row*n_col)].values
