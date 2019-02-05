@@ -8,6 +8,8 @@ from collections import Counter
 import matplotlib.cm as cm
 import pandas as pd
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.animation as animation
+#import seaborn as sns
 # model-checkpoint-1001-329329
 
 n_row = 2
@@ -39,10 +41,13 @@ def scatter(codes, labels):
     plt.show()
 '''
 
+def animate(angle):
+    ax.azim += 2
+
 def scatter(codes, labels, top_n=8):
 
-    fig = plt.figure()
-
+    #fig = plt.figure()
+    '''
     if codes.shape[1] == 2:
         ndim = 2
         ax = fig.add_subplot(111)
@@ -51,7 +56,7 @@ def scatter(codes, labels, top_n=8):
         ax = fig.add_subplot(111, projection='3d')
     else:
         raise ValueError("Codes must have 2 or 3 dimensions")
-
+    '''
     plotsize = 7
     counter = Counter(labels)
     if top_n <= len(set(labels)):
@@ -76,20 +81,47 @@ def scatter(codes, labels, top_n=8):
                            z_vals,
                            s=plotsize,
                            label=str(lab), color = colors[index], marker='o')
-    plt.legend()
-    plt.show()
+    #plt.legend()
+    #plt.show()
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=
                                      '''Plot the output of the encoder
                                      in 2 or 3D''')
-    parser.add_argument('savepath', nargs=1, type=str)
-    parser.add_argument('--n_code', '-n', type=int,
-                        choices=[2,3], default=2)
+    parser.add_argument('savepath',
+                        nargs=1,
+                        type=str,
+                        help="Path to tf checkpoint")
+
+    parser.add_argument('--n_code', '-n',
+                        type=int,
+                        choices=[2,3],
+                        default=2,
+                        help="Number of nodes in compressed representation")
+
+    parser.add_argument('-a','--animate',
+                        type=str,
+                        nargs='?',
+                        const=' ',
+                        default=None,
+                        help='''
+                        Option to animate 3d plot. If no file name specified,
+                        animation is shown on screen. If file name given,
+                        animation will be written to disk''')
     args = parser.parse_args()
 
     n_code = args.n_code
+
+    show_animation = False
+    write_animation = False
+    anim_filename = ''
+    if args.animate:
+        if args.animate == ' ':
+            show_animation = True
+        else:
+            write_animation = True
+            anim_filename = args.animate
 
     print("\nPULLING UP CAG DATA")
     cag = cag_input_data_mm.read_data_sets(input_type=input_type,
@@ -182,8 +214,42 @@ if __name__ == '__main__':
 
             labels = df_sorted.LABELS.values
 
+            #Writer = MovieWriter()
+            #writer = Writer(fps=30, metadata=dict(artist='Gilhool'), bitrate=1800)
+
+            metadata = dict(title='test_movie', artist='Gilhool',
+                            comment='Test')
+            fig = plt.figure(figsize=(14,9))
+
+            if ae_codes.shape[1] == 2:
+                ndim = 2
+                ax = fig.add_subplot(111)
+            elif ae_codes.shape[1] == 3:
+                ndim = 3
+                ax = fig.add_subplot(111, projection='3d')
+            else:
+                raise ValueError("Codes must have 2 or 3 dimensions")
 
             scatter(ae_codes, labels)
+            plt.legend()
 
-            #plt.imshow(ae_reconstruction[0].reshape((28,28)), cmap=plt.cm.gray)
-#            plt.show()
+
+            if ae_codes.shape[1] == 2:
+                plt.show()
+            elif ae_codes.shape[1] == 3:
+                if write_animation:
+                    writer = animation.FFMpegWriter(fps=30, metadata=metadata)
+                    with writer.saving(fig, anim_filename+'.mp4', dpi=100):
+                        for j in range(180):
+                            animate(j)
+                            writer.grab_frame()
+                elif show_animation:
+                    ani = animation.FuncAnimation(fig,
+                                          animate,
+                                          frames=180,
+                                          repeat=True)
+                    plt.show()
+                else:
+                    plt.show()
+            else:
+                raise ValueError("Codes must have 2 or 3 dimensions")
