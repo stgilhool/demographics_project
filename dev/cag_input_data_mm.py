@@ -32,7 +32,7 @@ PCA_DATA_FILE = SEQ_DATA_PATH + PCA_DATA_FILENAME
 #n_col = 10
 #n_snp = n_row * n_col
 
-def readin_pca(ncols=10):
+def readin_pca(ncols=10, rescale=True):
     pca_cols = ['UNKNOWN',
                 'INDIV_ID',
                 'PCA_0',
@@ -49,6 +49,19 @@ def readin_pca(ncols=10):
     pca_df = pd.read_csv(PCA_DATA_FILE, header=None, names=pca_cols, sep=' ')
     pca_df.drop(pca_df.columns[0], axis=1, inplace=True)
     pca_df.set_index('INDIV_ID', inplace=True)
+    #rescale
+    if rescale:
+        vals = pca_df.values
+        newvals = (vals-vals.min())/(vals-vals.min()).max()
+        pca_df = pd.DataFrame(data=newvals,
+                              columns=pca_df.columns,
+                              index=pca_df.index)
+        '''
+        for col in pca_df.columns.values:
+            raw_vals = pca_df[col].values
+            scaled_vals = (raw_vals-min(raw_vals))/max(raw_vals-min(raw_vals))
+            pca_df[col] = scaled_vals
+        '''
     pca_df = pca_df.iloc[:,np.arange(ncols)]
     return pca_df
 
@@ -65,6 +78,7 @@ def readin_cagsurvey():
                             header=0,
                             encoding='latin1',
                             dtype={'SUBJECT_ID':str})
+    survey_df.SUBJECT_ID = survey_df.SUBJECT_ID.apply(lambda x: x.zfill(10))
     #survey_df.set_index('SUBJECT_ID', inplace=True)
     return survey_df
 
@@ -256,16 +270,20 @@ def add_cagsurvey_encoding(df=readin_labels_cagsurvey()):
 
 '''Use df.COL.value_counts().to_frame()'''
 
-def get_data_and_labels():
-    pca = readin_pca()
+def get_data_and_labels(rescale=True):
+    pca = readin_pca(rescale=rescale)
     df = readin_cagsurvey()
     df.rename(columns={'CHIPID':'INDIV_ID'}, inplace=True)
     df.drop_duplicates('SUBJECT_ID', inplace=True)
+
+
     df.set_index('INDIV_ID', inplace=True)
+
     df = add_cagsurvey_encoding(df)
     out = pca.join(df, how='left')
     fillna_vals = {'LABELS':-1, 'RACE':'NA', 'ISASIAN':'NA', 'ASIANTYPE':'NA'}
     out.fillna(value=fillna_vals, inplace=True)
+
     return out
 
 def preprocess_data(input_type='raw',
@@ -301,7 +319,10 @@ def preprocess_data(input_type='raw',
     return input_data, input_labels
 
 class DataSet(object):
-    def __init__(self, images, labels, fake_data=False, one_hot=False,
+    def __init__(self, images, labels,
+                 ids=None,
+                 fake_data=False,
+                 one_hot=False,
                  dtype=tf.uint8):
         """Construct a DataSet.
         one_hot arg is used only if fake_data is true.  `dtype` can be
@@ -322,6 +343,7 @@ class DataSet(object):
 
         self._images = images
         self._labels = labels
+        self._ids = ids
         self._epochs_completed = 0
         self._index_in_epoch = 0
     @property
@@ -330,6 +352,9 @@ class DataSet(object):
     @property
     def labels(self):
         return self._labels
+    @property
+    def ids(self):
+        return self._ids
     @property
     def num_examples(self):
         return self._num_examples
@@ -422,4 +447,27 @@ def read_data_sets(fake_data=False,
     data_sets.test = DataSet(test_images, test_labels, dtype=dtype)
     return data_sets
 
+
+def get_ashkenazi_idx(df=get_data_and_labels(),
+                      filepath=PATIENT_DATA_PATH+'aj_data.txt'):
+    ids = [line[0:10] for line in open(filepath,'r').readlines()]
+    bool_idx = df['SUBJECT_ID'].isin(ids)
+    return bool_idx
+
+def read_test_data():
+
+    input_df = get_data_and_labels()
+    input_data = input_df.iloc[:,0:10].values
+    input_labels =  input_df.RACE.values
+    input_id = input_df.SUBJECT_ID.values
+    data_set = DataSet(input_data,input_labels,ids=input_id)
+
+    return data_set
+
 #if __name__ == '__main__':
+
+
+'''
+test = df[df['SUBJECT_ID'].isin(ids)]
+
+'''

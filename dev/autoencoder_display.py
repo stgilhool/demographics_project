@@ -57,6 +57,7 @@ def scatter(codes, labels, top_n=8):
     else:
         raise ValueError("Codes must have 2 or 3 dimensions")
     '''
+    ndim = codes.shape[1]
     plotsize = 7
     counter = Counter(labels)
     if top_n <= len(set(labels)):
@@ -73,16 +74,57 @@ def scatter(codes, labels, top_n=8):
                 ax.scatter(x_vals,
                            y_vals,
                            s=plotsize,
-                           label=str(lab), color = colors[index], marker='o')
+                           label=str(lab), color = colors[index], marker='o', alpha=0.5)
             elif ndim == 3:
                 z_vals = [codes[:,2][i] for i in np.arange(len(labels)) if labels[i] == lab]
                 ax.scatter(x_vals,
                            y_vals,
                            z_vals,
                            s=plotsize,
-                           label=str(lab), color = colors[index], marker='o')
-    #plt.legend()
-    #plt.show()
+                           label=str(lab), color = colors[index], marker='o', alpha=0.6)
+
+def scatter_aj(codes, labels, aj_idx):
+
+    plotsize = 7
+    counter = Counter(labels)
+
+    nlabels = 8
+    print(codes.shape)
+    print(labels.shape)
+    print(aj_idx.shape)
+    colors = cm.tab10(np.linspace(0,1,8))
+    for index, element in enumerate(counter.most_common()):
+        if index < nlabels and element[0] != 'NA':
+            lab = element[0]
+            x_vals = [codes[:,0][i] for i in np.arange(len(labels)) if labels[i] == lab]
+            y_vals = [codes[:,1][i] for i in np.arange(len(labels)) if labels[i] == lab]
+            if ndim == 2:
+                ax.scatter(x_vals,
+                           y_vals,
+                           s=plotsize,
+                           label=str(lab), color = colors[index], marker='o', alpha=0.5)
+            elif ndim == 3:
+                z_vals = [codes[:,2][i] for i in np.arange(len(labels)) if labels[i] == lab]
+                ax.scatter(x_vals,
+                           y_vals,
+                           z_vals,
+                           s=plotsize,
+                           label=str(lab), color = colors[index], marker='o', alpha=0.2)
+    #Plot Ashkenazi Jews
+    x_vals = codes[:,0][aj_idx]
+    y_vals = codes[:,1][aj_idx]
+    if ndim == 2:
+        ax.scatter(x_vals,
+                   y_vals,
+                   s=100,
+                   label='Ashkenazi Jew', color = 'red', marker='P')
+    elif ndim == 3:
+        z_vals = codes[:,2][aj_idx]
+        ax.scatter(x_vals,
+                   y_vals,
+                   z_vals,
+                   s=100,
+                   label='Ashkenazi Jew', color = 'red', marker='P')
 
 if __name__ == '__main__':
 
@@ -124,12 +166,21 @@ if __name__ == '__main__':
             anim_filename = args.animate
 
     print("\nPULLING UP CAG DATA")
+    '''
     cag = cag_input_data_mm.read_data_sets(input_type=input_type,
                                            n_data=n_snp,
                                            validation_size=VAL_SIZE,
                                            test_size=TEST_SIZE)
     print(len(cag.test.labels))
     print(cag.test.labels)
+    test_images = cag.test.images
+    test_labels = cag.test.labels
+    '''
+
+    cag = cag_input_data_mm.read_test_data()
+    test_images = cag.images
+    test_labels = cag.labels
+    test_ids = cag.ids
 
     # print "\nSTARTING PCA"
     # pca = decomposition.PCA(n_components=2)
@@ -175,35 +226,43 @@ if __name__ == '__main__':
             '''
             ae_codes, ae_reconstruction = sess.run([code, output],
                                                    feed_dict=
-                                                   {x: cag.test.images *
+                                                   {x: test_images *
                                                     np.random.randint(2,
                                                                       size=n_snp),
                                                     phase_train: True})
             '''
             ae_codes, ae_reconstruction = sess.run([code, output],
                                                    feed_dict=
-                                                   {x: cag.test.images,
+                                                   {x: test_images,
                                                     phase_train: True})
+
+            print(test_images.min(axis=0))
+            print(test_images.max(axis=0))
+            print(ae_reconstruction.min(axis=0))
+            print(ae_reconstruction.min(axis=1))
+
             #Sort codes and labels by most frequent labels
-            counter = Counter(cag.test.labels)
+            counter = Counter(test_labels)
             if n_code == 2:
                 df_base = pd.DataFrame({'CODES_0':ae_codes[:,0],
                                         'CODES_1':ae_codes[:,1],
-                                        'LABELS':cag.test.labels})
+                                        'LABELS':test_labels})
             elif n_code == 3:
                 df_base = pd.DataFrame({'CODES_0':ae_codes[:,0],
                                         'CODES_1':ae_codes[:,1],
                                         'CODES_2':ae_codes[:,2],
-                                        'LABELS':cag.test.labels})
+                                        'LABELS':test_labels})
             else:
                 raise ValueError("n_code must be 2 or 3. Currently = {}".format(n_code))
-
+            '''
             df_sorted = pd.DataFrame([])
             for lab, _ in counter.most_common():
                 tmpdf = df_base.loc[df_base.LABELS == lab]
                 df_sorted = pd.concat([df_sorted, tmpdf])
             del df_base
             del tmpdf
+            '''
+            df_sorted = df_base.copy()
 
             if n_code == 2:
                 ae_codes = df_sorted.loc[:,['CODES_0','CODES_1']].values
@@ -230,7 +289,13 @@ if __name__ == '__main__':
             else:
                 raise ValueError("Codes must have 2 or 3 dimensions")
 
-            scatter(ae_codes, labels)
+            #FIXME: Hardcoding AJ plot
+            ajplot = True
+            if ajplot:
+                aj_idx = cag_input_data_mm.get_ashkenazi_idx().values
+                scatter_aj(ae_codes, labels, aj_idx)
+            else:
+                scatter(ae_codes, labels)
             plt.legend()
 
 
