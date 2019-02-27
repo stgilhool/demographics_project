@@ -4,22 +4,23 @@ from tensorflow.python import control_flow_ops
 import time, argparse
 
 # Architecture
-
+'''
 n_encoder_hidden_1 = 1000
 n_encoder_hidden_2 = 500
 n_encoder_hidden_3 = 250
 n_decoder_hidden_1 = 250
 n_decoder_hidden_2 = 500
 n_decoder_hidden_3 = 1000
-
 '''
+
+
 n_encoder_hidden_1 = 100
 n_encoder_hidden_2 = 50
 n_encoder_hidden_3 = 10
 n_decoder_hidden_1 = 10
 n_decoder_hidden_2 = 50
 n_decoder_hidden_3 = 100
-'''
+
 '''
 n_encoder_hidden_1 = 16
 n_encoder_hidden_2 = 8

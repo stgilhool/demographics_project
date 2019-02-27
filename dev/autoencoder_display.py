@@ -151,6 +151,12 @@ if __name__ == '__main__':
                         Option to animate 3d plot. If no file name specified,
                         animation is shown on screen. If file name given,
                         animation will be written to disk''')
+    parser.add_argument('-j','--aj','--ashkenazi',
+                        action='store_true',
+                        help='''
+                        Option to overplot the Ashkenazi Jews
+                        ''')
+
     args = parser.parse_args()
 
     n_code = args.n_code
@@ -164,6 +170,8 @@ if __name__ == '__main__':
         else:
             write_animation = True
             anim_filename = args.animate
+
+    ajplot = args.aj
 
     print("\nPULLING UP CAG DATA")
     '''
@@ -289,10 +297,8 @@ if __name__ == '__main__':
             else:
                 raise ValueError("Codes must have 2 or 3 dimensions")
 
-            #FIXME: Hardcoding AJ plot
-            ajplot = True
+            aj_idx = cag_input_data_mm.get_ashkenazi_idx().values
             if ajplot:
-                aj_idx = cag_input_data_mm.get_ashkenazi_idx().values
                 scatter_aj(ae_codes, labels, aj_idx)
             else:
                 scatter(ae_codes, labels)
