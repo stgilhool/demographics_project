@@ -156,6 +156,12 @@ if __name__ == '__main__':
                         help='''
                         Option to overplot the Ashkenazi Jews
                         ''')
+    parser.add_argument('-o', '--out', '--outfile',
+                        dest='outfile',
+                        type=str,
+                        help='''
+                        Filename for DataFrame output.
+                        Will be stored in data directory as .pkl''')
 
     args = parser.parse_args()
 
@@ -172,6 +178,7 @@ if __name__ == '__main__':
             anim_filename = args.animate
 
     ajplot = args.aj
+    outfile = args.outfile
 
     print("\nPULLING UP CAG DATA")
     '''
@@ -270,7 +277,7 @@ if __name__ == '__main__':
             del df_base
             del tmpdf
             '''
-            df_sorted = df_base.copy()
+            df_sorted = df_base.set_index(test_ids)
 
             if n_code == 2:
                 ae_codes = df_sorted.loc[:,['CODES_0','CODES_1']].values
@@ -298,6 +305,9 @@ if __name__ == '__main__':
                 raise ValueError("Codes must have 2 or 3 dimensions")
 
             aj_idx = cag_input_data_mm.get_ashkenazi_idx().values
+            df_sorted.loc[aj_idx,'LABELS']='Ashkenazi'
+            if outfile:
+                df_sorted.to_pickle('/home/gilhools/demographics_project/data/patient_data/'+outfile+'.pkl')
             if ajplot:
                 scatter_aj(ae_codes, labels, aj_idx)
             else:
