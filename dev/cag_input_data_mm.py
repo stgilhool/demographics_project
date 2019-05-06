@@ -271,7 +271,7 @@ def add_cagsurvey_encoding(df=readin_labels_cagsurvey()):
 '''Use df.COL.value_counts().to_frame()'''
 
 def get_data_and_labels(rescale=True):
-    pca = readin_pca(rescale=rescale)
+    pca = readin_pca()
     df = readin_cagsurvey()
     df.rename(columns={'CHIPID':'INDIV_ID'}, inplace=True)
     df.drop_duplicates('SUBJECT_ID', inplace=True)
@@ -463,6 +463,28 @@ def read_test_data():
     data_set = DataSet(input_data,input_labels,ids=input_id)
 
     return data_set
+
+def sid_lookup(indiv_id):
+    # Bad idea to use for more than just one (reads in lookup table each time)
+    if not isinstance(indiv_id, str):
+        raise TypeError("indiv_id must be type str")
+    lookup_table = pd.read_pickle(PATIENT_DATA_PATH+'sid_lookup.pkl')
+    sid = lookup_table.loc[indiv_id]
+    return sid
+
+def indiv_id_lookup(sid):
+    # Bad idea to use for more than just one (reads in lookup table each time)
+    if not isinstance(sid, str):
+        raise TypeError("sid must be type str")
+    lookup_table = pd.read_pickle(PATIENT_DATA_PATH+'sid_lookup.pkl')
+    indiv_id = lookup_table.loc[lookup_table.values == sid].index.values[0]
+    return indiv_id
+
+'''
+# Better way to go from indiv_id to sid
+# (with lookup table a pd.Series with index INDIV_ID and values SUBJECT_ID)
+df.INDIV_ID.map(lookup_table)
+'''
 
 #if __name__ == '__main__':
 
