@@ -22,4 +22,6 @@ tsne_df.set_index('SUBJECT_ID', inplace=True)
 #merge the fuckers
 merge_df = pd.merge(ae_df, tsne_df, left_index=True, right_index=True, how='left')
 
-
+# To plot
+#merge_df.plot.scatter(x='CODES_0', y='CODES_1', color=merge_df.LABELS.map({'Caucasian':'blue', 'Black/African American':'red'}), alpha=0.3)
+#merge_df.plot.scatter(x='TSNE_0', y='TSNE_1', color=merge_df.LABELS.map({'Caucasian':'blue', 'Black/African American':'red'}), alpha=0.3)
