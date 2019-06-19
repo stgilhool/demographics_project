@@ -323,15 +323,17 @@ class DataSet(object):
                  ids=None,
                  fake_data=False,
                  one_hot=False,
-                 dtype=tf.uint8):
+                 dtype=tf.float16):
         """Construct a DataSet.
         one_hot arg is used only if fake_data is true.  `dtype` can be
         `uint8`
         """
         dtype = tf.as_dtype(dtype).base_dtype
+        '''
         if dtype != tf.uint8:
             raise TypeError('Invalid image dtype %r, expected uint8' %
                           dtype)
+        '''
         if fake_data:
             self._num_examples = 10000
             self.one_hot = one_hot
@@ -394,7 +396,7 @@ def read_data_sets(fake_data=False,
                    n_data=10,
                    validation_size=450,
                    test_size=1000,
-                   dtype=tf.uint8):
+                   dtype=tf.float16):
     class DataSets(object):
         pass
     data_sets = DataSets()
