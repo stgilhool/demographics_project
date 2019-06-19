@@ -1,8 +1,11 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
+import sklearn
 
 from cag_input_data_mm import DataSet
+from cag_input_data_mm import PATIENT_DATA_PATH
 
 RESULTS_PATH = '/home/gilhools/demographics_project/out/'
 
@@ -27,11 +30,10 @@ merge_df = pd.merge(ae_df, tsne_df, left_index=True, right_index=True, how='left
 #merge_df.plot.scatter(x='TSNE_0', y='TSNE_1', color=merge_df.LABELS.map({'Caucasian':'blue', 'Black/African American':'red'}), alpha=0.3)
 def read_data_classifier(fake_data=False,
                          one_hot=False,
-                         input_type='raw',
-                         n_data=10,
+                         input_type='ae',
                          validation_size=450,
                          test_size=1000,
-                         dtype=tf.float32):
+                         dtype=tf.float16):
     class DataSets(object):
         pass
     data_sets = DataSets()
@@ -44,15 +46,27 @@ def read_data_classifier(fake_data=False,
         return data_sets
 
     # Read in real data
-    input_df = merge_df()
-    input_data = input_df.loc[:,['CODES_0','CODES_1']].values
+    input_df = merge_df
+
+    if input_type == 'ae':
+        input_data = input_df.loc[:,['CODES_0','CODES_1']].values
+    elif input_type == 'tsne':
+        input_data = input_df.loc[:,['TSNE_0','TSNE_1']].values
+    else:
+        raise ValueError('Input type must be ae or tsne')
     
-    input_labels =  input_df.LABELS
+    input_labels_string_series =  input_df.LABELS
+    input_labels_string = input_labels_string_series.values.reshape(-1,1)
+    # Change labels to one-hot encodings
+    enc = sklearn.preprocessing.OneHotEncoder()
+    enc.fit(input_labels_string)
+    input_labels = enc.transform(input_labels_string).toarray()
 
-
+    print("input_labels.shape = ", input_labels.shape)
     test_images = input_data[:test_size,:]
     test_labels = input_labels[:test_size]
-
+    print("test_labels.shape = ", test_labels.shape)
+    
     trainval_images = input_data[test_size:,:]
     trainval_labels = input_labels[test_size:]
     # Take subset of training data for validation
