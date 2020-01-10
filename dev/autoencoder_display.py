@@ -249,7 +249,7 @@ if __name__ == '__main__':
             ae_codes, ae_reconstruction = sess.run([code, output],
                                                    feed_dict=
                                                    {x: test_images,
-                                                    phase_train: True})
+                                                    phase_train: False})
 
             print(test_images.min(axis=0))
             print(test_images.max(axis=0))
