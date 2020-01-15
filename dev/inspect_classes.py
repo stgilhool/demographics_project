@@ -16,23 +16,7 @@ ae_df = pd.read_pickle(RESULTS_PATH+'autoencoder_results.pkl')
 tsne_df = pd.read_pickle(RESULTS_PATH+'tsne_df.pkl')
 
 # Cut ae table to just Caucasian and Black/AA patients
-ae_df = ae_df.loc[ae_df.LABELS.isin([
-    "Caucasian",
-    "Black/African American",
-    "Other",
-    #"Caucasian,Black/African American",
-    #"Hispanic/Latino + Other",
-    #"Hispanic/Latino + Caucasian",
-    #"Hispanic/Latino + Black",
-])]
-
-pca_df = pd.read_csv('/home/gilhools/demographics_project/data/seq_data/MM-PCA.eigenvec', sep=' ', header=None)
-
-pca_df = pca_df.loc[:,[1,2,3,4,5,6,7,8,9,10,11]]
-pca_df['SUBJECT_ID'] = pca_df[1].map(lookup_table).values
-pca_df.set_index('SUBJECT_ID',inplace=True)
-pca_df.rename({2:'PCA_1', 3:'PCA_2', 4:'PCA_3', 5:'PCA_4', 6:'PCA_5', 7:'PCA_6', 8:'PCA_7', 9:'PCA_8', 10:'PCA_9', 11:'PCA_10'}, axis=1, inplace=True)
-
+ae_df = ae_df.loc[ae_df.LABELS.isin(["Caucasian", "Black/African American"])]
 
 #change index of tsne_df from InNDIV_ID to SUBJECT_ID
 tsne_df['SUBJECT_ID'] = tsne_df.reset_index()['INDIV_ID'].map(lookup_table).values
@@ -40,20 +24,6 @@ tsne_df.set_index('SUBJECT_ID', inplace=True)
 
 #merge the fuckers
 merge_df = pd.merge(ae_df, tsne_df, left_index=True, right_index=True, how='left')
-merge_df = pd.merge(merge_df, pca_df, left_index=True, right_index=True, how='left')
-
-def balance_classes(df):
-    df_copy = df.copy()
-    #nclasses = df.LABELS.value_counts().count()
-    nsamples_per_class = df_copy.LABELS.value_counts().values
-    classes = df_copy.LABELS.value_counts().index
-    nsamples_max_class = max(nsamples_per_class)
-    for cls, nsamples in list(zip(classes, nsamples_per_class)):
-        nsamples_needed = nsamples_max_class - nsamples
-        #add nsamples_needed randomly sampled to dataframe
-        df_copy = pd.concat([df_copy, df_copy.loc[df_copy.LABELS == cls].sample(nsamples_needed, replace=True)])
-    df_copy = df_copy.sample(frac=1)
-    return df_copy
 
 # To plot
 #merge_df.plot.scatter(x='CODES_0', y='CODES_1', color=merge_df.LABELS.map({'Caucasian':'blue', 'Black/African American':'red'}), alpha=0.3)
@@ -77,14 +47,11 @@ def read_data_classifier(fake_data=False,
 
     # Read in real data
     input_df = merge_df
-    #input_df = balance_classes(input_df)
 
     if input_type == 'ae':
         input_data = input_df.loc[:,['CODES_0','CODES_1']].values
     elif input_type == 'tsne':
         input_data = input_df.loc[:,['TSNE_0','TSNE_1']].values
-    elif input_type == 'pca':
-        input_data = input_df.loc[:,['PCA_1','PCA_2','PCA_3','PCA_4','PCA_5','PCA_6','PCA_7','PCA_8','PCA_9','PCA_10']].values
     else:
         raise ValueError('Input type must be ae or tsne')
     
