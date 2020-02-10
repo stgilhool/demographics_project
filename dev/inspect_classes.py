@@ -32,6 +32,21 @@ merge_df = pd.merge(ae_df, tsne_df, left_index=True, right_index=True, how='left
 # To plot
 #merge_df.plot.scatter(x='CODES_0', y='CODES_1', color=merge_df.LABELS.map({'Caucasian':'blue', 'Black/African American':'red'}), alpha=0.3)
 #merge_df.plot.scatter(x='TSNE_0', y='TSNE_1', color=merge_df.LABELS.map({'Caucasian':'blue', 'Black/African American':'red'}), alpha=0.3)
+
+def balance_classes(df):
+    df_copy = df.copy()
+    #nclasses = df.LABELS.value_counts().count()
+    nsamples_per_class = df_copy.LABELS.value_counts().values
+    classes = df_copy.LABELS.value_counts().index
+    nsamples_max_class = max(nsamples_per_class)
+    for cls, nsamples in list(zip(classes, nsamples_per_class)):
+        nsamples_needed = nsamples_max_class - nsamples
+        #add nsamples_needed randomly sampled to dataframe
+        df_copy = pd.concat([df_copy, df_copy.loc[df_copy.LABELS == cls].sample(nsamples_needed, replace=True)])
+    df_copy = df_copy.sample(frac=1)
+    return df_copy
+
+
 def read_data_classifier(fake_data=False,
                          one_hot=False,
                          input_type='ae',
@@ -51,6 +66,8 @@ def read_data_classifier(fake_data=False,
 
     # Read in real data
     input_df = cag_input_data_1000.get_data_and_labels()
+    input_df = balance_classes(input_df)
+    print(input_df)
 
     if input_type == 'ae':
         input_data = input_df.loc[:,['CODES_0','CODES_1']].values
