@@ -2,7 +2,8 @@ from sklearn import decomposition
 from matplotlib import pyplot as plt
 import tensorflow as tf
 import autoencoder_cag as ae
-import argparse, cag_input_data_mm
+#import argparse, cag_input_data_mm
+import argparse, cag_input_data_1000
 import numpy as np
 from collections import Counter
 import matplotlib.cm as cm
@@ -17,8 +18,10 @@ n_col = 5
 n_snp = n_row * n_col
 input_type = 'pca'
 
-VAL_SIZE = 1000
-TEST_SIZE = 30000
+#VAL_SIZE = 1000
+VAL_SIZE = 750
+#TEST_SIZE = 30000
+TEST_SIZE = 500
 '''
 def scatter(codes, labels):
     colors = [
@@ -192,7 +195,8 @@ if __name__ == '__main__':
     test_labels = cag.test.labels
     '''
 
-    cag = cag_input_data_mm.read_test_data()
+#    cag = cag_input_data_mm.read_test_data()
+    cag = cag_input_data_1000.read_test_data()
     test_images = cag.images
     test_labels = cag.labels
     test_ids = cag.ids
@@ -304,7 +308,9 @@ if __name__ == '__main__':
             else:
                 raise ValueError("Codes must have 2 or 3 dimensions")
 
-            aj_idx = cag_input_data_mm.get_ashkenazi_idx().values
+            #aj_idx = cag_input_data_mm.get_ashkenazi_idx().values
+            #aj_idx = cag_input_data_1000.get_ashkenazi_idx().values
+            aj_idx = cag_input_data_1000.get_ashkenazi_idx()
             df_sorted.loc[aj_idx,'LABELS']='Ashkenazi'
             if outfile:
                 df_sorted.to_pickle('/home/gilhools/demographics_project/data/patient_data/'+outfile+'.pkl')
