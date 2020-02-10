@@ -1,20 +1,21 @@
 import tensorflow as tf
 import time, shutil, os
 
-import cag_input_data_mm as cdata
+#import cag_input_data_mm as cdata
+import cag_input_data_1000 as cdata
 import inspect_classes as inclass
 
 # Architecture
-n_hidden_1 = 50
-n_hidden_2 = 50
+n_hidden_1 = 25
+n_hidden_2 = 25
 #n_hidden_3 = 7
-output_dim = 3 # 2 classes for now: Caucasian & AA
+output_dim = 5 # 2 classes for now: Caucasian & AA
 input_dim = 10 # using 2-d ae encodings as input for now
 
 # Parameters
 learning_rate = 0.01
-training_epochs = 1001
-batch_size = 10000
+training_epochs = 1501
+batch_size = 100
 display_step = 25
 
 def layer(input, weight_shape, bias_shape, activation='sigmoid'):
@@ -89,14 +90,14 @@ def confusion(output,y):
 if __name__ == '__main__':
     
     val_size = 1000
-    test_size = 5000
+    test_size = 500
     input_type = 'pca'
     cag = inclass.read_data_classifier(input_type=input_type,
                                        validation_size=val_size,
                                        test_size=test_size)
 
-    if os.path.exists("mlp_logs"+str(output_dim)+"_classes/"):
-        shutil.rmtree("mlp_logs"+str(output_dim)+"_classes/")
+    if os.path.exists("mlp_logs_1000_"+str(output_dim)+"_classes/"):
+        shutil.rmtree("mlp_logs_1000_"+str(output_dim)+"_classes/")
 
     with tf.Graph().as_default():
 
@@ -178,4 +179,3 @@ if __name__ == '__main__':
 
             print("")
             print(confusion_matrix)
-            
