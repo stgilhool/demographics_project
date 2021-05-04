@@ -9,35 +9,36 @@ from sklearn import preprocessing
 # Initialize paths and file names
 # Paths
 DEMO_DATA_PATH = "/home/gilhools/demographics_project/data/"
-SEQ_DATA_PATH = DEMO_DATA_PATH + "seq_data/"
-PATIENT_DATA_PATH = DEMO_DATA_PATH + "patient_data/"
-THOU_DATA_PATH = DEMO_DATA_PATH + "1000_Genomes/"
+DATASET_PATH = DEMO_DATA_PATH + "adhd_xiao_gsa/"
+
+PCA_DATA_PATH = DATASET_PATH + "pca_data/"
+LABEL_DATA_PATH = DATASET_PATH + "label_data/"
 
 # Filenames
-PATIENT_DATA_FILENAME = "integrated_call_samples_v3.20130502.ALL.panel"
-PCA_DATA_FILENAME = "pca_1000G.eigenvec"
+LABEL_DATA_FILENAME = "adhd_gsa_all_labels.txt"
+PCA_DATA_FILENAME = "adhd_gsa_all.evec"
 
 # Full paths to files.
-PATIENT_DATA_FILE = PATIENT_DATA_PATH + PATIENT_DATA_FILENAME
-PCA_DATA_FILE = SEQ_DATA_PATH + PCA_DATA_FILENAME
-THOU_DATA_FILE = THOU_DATA_PATH + PATIENT_DATA_FILENAME
+LABEL_DATA_FILE = LABEL_DATA_PATH + LABEL_DATA_FILENAME
+PCA_DATA_FILE = PCA_DATA_PATH + PCA_DATA_FILENAME
 
 def readin_pca(ncols=10, rescale=True):
-    pca_cols = [#'UNKNOWN',
-                #'INDIV_ID',
-        'SUBJECT_ID',
-                'PCA_0',
-                'PCA_1',
-                'PCA_2',
-                'PCA_3',
-                'PCA_4',
-                'PCA_5',
-                'PCA_6',
-                'PCA_7',
-                'PCA_8',
-                'PCA_9'
-                ]
-    pca_df = pd.read_csv(PCA_DATA_FILE, header=None, names=pca_cols, sep=' ')
+    '''
+    Reads in PCA_DATA_FILE into a dataframe.
+    File must be tab-separated, with header.
+    Columns are SUBJECT_ID, followed by PCA vectors.
+    File must have headers, but columns will be renamed, so it
+    doesn't matter what the names are in the original file
+
+    INPUTS:
+    ncols - number of PCA vectors (default 10)
+    rescale - boolean (True). Rescale the vectors to range [0,1]
+
+    OUTPUT:
+    pca_df - DataFrame with SUBJECT_IDs as the index, and PCAs as the data
+    '''
+    pca_cols = ['SUBJECT_ID'] + ["_".join(["PCA",str(x)]) for x in np.arange(ncols)]
+    pca_df = pd.read_csv(PCA_DATA_FILE, header=0, names=pca_cols, delim_whitespace=True)
     pca_df.set_index('SUBJECT_ID', inplace=True)
     #rescale
     if rescale:
@@ -47,17 +48,14 @@ def readin_pca(ncols=10, rescale=True):
         pca_df = pd.DataFrame(data=newvals,
                               columns=pca_df.columns,
                               index=pca_df.index)
-    
-    pca_df = pca_df.iloc[:,np.arange(ncols)]
     return pca_df
 
-def readin_1000G_labels():
-    genomes_df = pd.read_csv(THOU_DATA_FILE,
+def readin_labels():
+    genomes_df = pd.read_csv(LABEL_DATA_FILE,
                              header=0,
                              encoding='latin1',
                              sep='\t',
                              )
-    genomes_df.rename(columns={'sample':'SUBJECT_ID', 'super_pop':'RACE'}, inplace=True)
     return genomes_df
 
 
@@ -79,7 +77,7 @@ def add_encoding(df, col='RACE'):
 # Read in the data frames
 def get_data_and_labels(ncols=10, rescale=True):
     pca = readin_pca(ncols=ncols, rescale=rescale)
-    df = readin_1000G_labels()
+    df = readin_labels()
     df.drop_duplicates('SUBJECT_ID', inplace=True) #FIXME: No dups in 1000G data, but maybe in other label sets
 
     df.set_index('SUBJECT_ID', inplace=True)
@@ -144,8 +142,8 @@ class DataSet(object):
         end = self._index_in_epoch
         return self._images[start:end], self._labels[start:end]
 
-def read_data_sets(input_type='raw',
-                   n_data=10,
+def read_data_sets(n_data=10,
+                   col="LABELS",
                    validation_size=450,
                    test_size=1000,
                    dtype=tf.float16):
@@ -153,9 +151,9 @@ def read_data_sets(input_type='raw',
         pass
     data_sets = DataSets()
     # Read in real data
-    input_df = get_data_and_labels()
-    input_data = input_df.iloc[:,0:10].values #FIXME: dependent on input_df columns (too hardcoded)
-    input_labels =  input_df.RACE #FIXME: ? Why is this race and not LABELS?
+    input_df = get_data_and_labels(ncols=n_data)
+    input_data = input_df.iloc[:,0:-2].values #FIXME: relies upon last two columns being Race and Labels
+    input_labels =  input_df[col].values #FIXME: ? Why was this race and not LABELS?
 
     # Hold out test data
     test_images = input_data[:test_size,:]
@@ -176,21 +174,11 @@ def read_data_sets(input_type='raw',
     data_sets.test = DataSet(test_images, test_labels, dtype=dtype)
     return data_sets
 
-
-def get_ashkenazi_idx(df=get_data_and_labels(),
-                      filepath=PATIENT_DATA_PATH+'aj_data.txt'):
-    ids = [line[0:10] for line in open(filepath,'r').readlines()]
-    #bool_idx = df['SUBJECT_ID'].isin(ids)
-    bool_idx = df.index.isin(ids)
-    return bool_idx
-
-def read_test_data():
+def read_test_data(col="LABELS"):
 
     input_df = get_data_and_labels()
-    input_data = input_df.iloc[:,0:10].values
-    input_labels =  input_df.RACE.values
-    #input_id = input_df.SUBJECT_ID.values
-    #input_id = input_df.SUBJECT_ID.values
+    input_data = input_df.iloc[:,0:-2].values
+    input_labels =  input_df[col].values
     input_id = input_df.index.values
     data_set = DataSet(input_data,input_labels,ids=input_id)
 

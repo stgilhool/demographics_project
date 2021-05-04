@@ -1,5 +1,4 @@
-#import cag_input_data_mm as cag_input_data
-import cag_input_data_1000 as cag_input_data
+import cag_input_data_xiao as cag_input_data
 import tensorflow as tf
 from tensorflow.python import control_flow_ops
 import time, argparse
@@ -13,7 +12,6 @@ n_decoder_hidden_1 = 250
 n_decoder_hidden_2 = 500
 n_decoder_hidden_3 = 1000
 '''
-
 '''
 n_encoder_hidden_1 = 100
 n_encoder_hidden_2 = 50
@@ -22,13 +20,14 @@ n_decoder_hidden_1 = 10
 n_decoder_hidden_2 = 50
 n_decoder_hidden_3 = 100
 '''
-'''
+
 n_encoder_hidden_1 = 16
 n_encoder_hidden_2 = 8
 n_encoder_hidden_3 = 4
 n_decoder_hidden_1 = 4
 n_decoder_hidden_2 = 8
 n_decoder_hidden_3 = 16
+
 '''
 n_encoder_hidden_1 = 32
 n_encoder_hidden_2 = 16
@@ -36,7 +35,7 @@ n_encoder_hidden_3 = 8
 n_decoder_hidden_1 = 8
 n_decoder_hidden_2 = 16
 n_decoder_hidden_3 = 32
-
+'''
 '''
 n_encoder_hidden_1 = 500
 n_encoder_hidden_2 = 250
@@ -49,14 +48,13 @@ n_decoder_hidden_3 = 500
 n_row = 2
 n_col = 5
 n_snp = n_row * n_col
-input_type = 'pca'
 
 # Parameters
 learning_rate = 0.05
-training_epochs = 5001
+training_epochs = 1001
 batch_size = 100
 display_step = 50
-VAL_SIZE = 750
+VAL_SIZE = 1000
 TEST_SIZE = 500
 
 def layer_batch_norm(x, n_out, phase_train):
@@ -158,10 +156,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     n_code = args.n_code[0]
 
-    cag = cag_input_data.read_data_sets(input_type=input_type,
-                                           n_data=n_snp,
-                                           validation_size=VAL_SIZE,
-                                           test_size=TEST_SIZE)
+    cag = cag_input_data.read_data_sets(n_data=n_snp,
+                                        validation_size=VAL_SIZE,
+                                        test_size=TEST_SIZE)
 
     with tf.Graph().as_default():
 

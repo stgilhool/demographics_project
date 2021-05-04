@@ -1,3 +1,4 @@
+import cag_input_data_xiao as cdata
 from sklearn import decomposition
 from matplotlib import pyplot as plt
 import tensorflow as tf
@@ -16,33 +17,11 @@ import matplotlib.animation as animation
 n_row = 2
 n_col = 5
 n_snp = n_row * n_col
-input_type = 'pca'
 
 #VAL_SIZE = 1000
 VAL_SIZE = 750
 #TEST_SIZE = 30000
 TEST_SIZE = 500
-'''
-def scatter(codes, labels):
-    colors = [
-        ('#27ae60', 'o'),
-        ('#2980b9', 'o'),
-        ('#8e44ad', 'o'),
-        ('#f39c12', 'o'),
-        ('#c0392b', 'o'),
-        ('#27ae60', 'x'),
-        ('#2980b9', 'x'),
-        ('#8e44ad', 'x'),
-        ('#c0392b', 'x'),
-        ('#f39c12', 'x'),
-    ]
-    for num in np.arange(8):
-        plt.scatter([codes[:,0][i] for i in np.arange(len(labels)) if labels[i] == num],
-        [codes[:,1][i] for i in np.arange(len(labels)) if labels[i] == num], 7,
-        label=str(num), color = colors[num][0], marker=colors[num][1])
-    plt.legend()
-    plt.show()
-'''
 
 def animate(angle):
     ax.azim += 2
@@ -131,6 +110,7 @@ def scatter_aj(codes, labels, aj_idx):
 
 if __name__ == '__main__':
 
+    '''Plot the output of the autoencoder in 2 or 3D'''
     parser = argparse.ArgumentParser(description=
                                      '''Plot the output of the encoder
                                      in 2 or 3D''')
@@ -196,7 +176,7 @@ if __name__ == '__main__':
     '''
 
 #    cag = cag_input_data_mm.read_test_data()
-    cag = cag_input_data_1000.read_test_data()
+    cag = cdata.read_test_data(col="LABELS")
     test_images = cag.images
     test_labels = cag.labels
     test_ids = cag.ids
@@ -310,11 +290,12 @@ if __name__ == '__main__':
 
             #aj_idx = cag_input_data_mm.get_ashkenazi_idx().values
             #aj_idx = cag_input_data_1000.get_ashkenazi_idx().values
-            aj_idx = cag_input_data_1000.get_ashkenazi_idx()
-            df_sorted.loc[aj_idx,'LABELS']='Ashkenazi'
+            
+            #df_sorted.loc[aj_idx,'LABELS']='Ashkenazi'
             if outfile:
                 df_sorted.to_pickle('/home/gilhools/demographics_project/data/patient_data/'+outfile+'.pkl')
             if ajplot:
+                #aj_idx = cag_input_data_1000.get_ashkenazi_idx()
                 scatter_aj(ae_codes, labels, aj_idx)
             else:
                 scatter(ae_codes, labels)
