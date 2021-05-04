@@ -110,6 +110,7 @@ def scatter_aj(codes, labels, aj_idx):
 
 if __name__ == '__main__':
 
+    '''Plot the output of the autoencoder in 2 or 3D'''
     parser = argparse.ArgumentParser(description=
                                      '''Plot the output of the encoder
                                      in 2 or 3D''')
