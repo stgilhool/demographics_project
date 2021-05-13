@@ -1,7 +1,7 @@
 # demographics_project
 
 autoencoder_display.py - Plot the results of the autoencoder in 2 or 3D 
-autoencoder_cag.py - Trains the autoencoder and saves output to cag_autoencoder_hidded=<n_nodes>_logs/model-checkpoint-<epoch> for autoencoder_display to read 
+autoencoder_cag.py - Trains the autoencoder and saves output to cag_autoencoder_hidden=<n_nodes>_logs/model-checkpoint-<epoch> for autoencoder_display to read 
 classifier.py - Runs multilayer perceptron to classify ancestry
 cag_input_data_xiao.py - Initializes data from Xiao, for importing into AE and classifier scripts
 cag_input_data_1000.py - Initializes data from 1000 Genomes, for importing into AE and classifier scripts
